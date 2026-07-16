@@ -4,7 +4,7 @@
 
 Codex Float for Windows 是一个轻量、原生、常驻桌面的 Codex 额度悬浮工具。它通过本机 Codex CLI 的 app-server 协议读取额度，不上传使用数据，也不保存登录凭证。
 
-当前版本：**v1.0.0**
+当前版本：**v1.0.1**
 
 ## 核心体验
 

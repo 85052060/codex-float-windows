@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.0.1 — Expanded panel hierarchy
+
+- 参考用户提供的布局重新设计展开面板
+- 左侧突出本周剩余额度，右侧显示距重置倒计时
+- 重置日期、当前套餐和重置机会改为大号粗体摘要
+- 展开与折叠状态形成更明显的视觉差异
+
 ## v1.0.0 — Initial public release
 
 - Windows 原生 Codex 每周额度悬浮胶囊

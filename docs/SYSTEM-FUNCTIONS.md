@@ -1,6 +1,6 @@
 # Codex Float for Windows 系统功能说明
 
-版本：v1.0.0  
+版本：v1.0.1  
 平台：Windows 10 / Windows 11 x64
 
 ## 1. 产品定位

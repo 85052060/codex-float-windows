@@ -33,7 +33,7 @@ namespace CodexFloatWindows
             try
             {
                 process = StartCodex();
-                Write(process, "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"CodexFloatWindows\",\"version\":\"1.0.0\"}}}");
+                Write(process, "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"CodexFloatWindows\",\"version\":\"1.0.1\"}}}");
                 WaitForResponse(process, 1, 12000);
                 Write(process, "{\"method\":\"initialized\"}");
                 Write(process, "{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":null}");
@@ -502,7 +502,7 @@ namespace CodexFloatWindows
 
     internal sealed class RefinedFloatForm : Form
     {
-        private const string AppVersion = "v1.0.0";
+        private const string AppVersion = "v1.0.1";
         private const int WsExLayered = 0x00080000;
         private const int UlwAlpha = 0x00000002;
         private const byte AcSrcAlpha = 0x01;
@@ -703,22 +703,43 @@ namespace CodexFloatWindows
             }
 
             Color state = QuotaColor(current.Remaining.Value);
+            string percentText = Math.Round(current.Remaining.Value).ToString("0", CultureInfo.InvariantCulture);
             using (Font number = new Font("Bahnschrift", 64f, FontStyle.Regular, GraphicsUnit.Pixel))
-            using (SolidBrush primary = new SolidBrush(TextPrimary))
-                g.DrawString(Math.Round(current.Remaining.Value).ToString("0", CultureInfo.InvariantCulture), number, primary, new PointF(22, 61));
             using (Font suffix = new Font("Bahnschrift", 20f, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (SolidBrush primary = new SolidBrush(TextPrimary))
             using (SolidBrush secondary = new SolidBrush(TextSecondary))
-                g.DrawString("%", suffix, secondary, new PointF(121, 92));
+            {
+                g.DrawString(percentText, number, primary, new PointF(24, 58));
+                float suffixX = 29 + g.MeasureString(percentText, number).Width;
+                g.DrawString("%", suffix, secondary, new PointF(suffixX, 91));
+            }
 
-            DrawLabel(g, "本周剩余", 24, 137, TextSecondary);
+            using (Font labelStrong = new Font("Microsoft YaHei UI", 18f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (SolidBrush primary = new SolidBrush(TextPrimary))
+                g.DrawString("本周剩余", labelStrong, primary, new PointF(24, 136));
+
+            using (Font countdownLabel = new Font("Microsoft YaHei UI", 25f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Font countdownValue = new Font("Microsoft YaHei UI", 27f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (SolidBrush primary = new SolidBrush(TextPrimary))
+            {
+                g.DrawString("距重置", countdownLabel, primary, new PointF(199, 57));
+                g.DrawString(CountdownHeadline(), countdownValue, primary, new PointF(184, 101));
+            }
+
             DrawCapacityRail(g, 24, 169, 324, current.Remaining.Value, state);
             DrawLabelRight(g, "更新于 " + current.FetchedAt.ToString("HH:mm"), 348, 181, TextTertiary);
 
             DrawDivider(g, 24, 211, 348);
-            DrawDetailRow(g, "下次重置", ResetPrimary(), ResetSecondary(), 235);
+            using (Font reset = new Font("Microsoft YaHei UI", 21f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (SolidBrush primary = new SolidBrush(TextPrimary))
+                g.DrawString("重置日期：" + ResetDateHeadline(), reset, primary, new PointF(24, 239));
             DrawDivider(g, 24, 290, 348);
-            DrawDetailRow(g, "当前套餐", current.Plan ?? "暂不可用", null, 314);
-            DrawDetailRow(g, "重置机会", current.ResetCredits.HasValue ? current.ResetCredits.Value + " 次可用" : "暂不可用", null, 354);
+            using (Font summary = new Font("Microsoft YaHei UI", 21f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (SolidBrush primary = new SolidBrush(TextPrimary))
+            {
+                g.DrawString("当前套餐：" + (current.Plan ?? "暂不可用"), summary, primary, new PointF(24, 310));
+                g.DrawString("重置机会：" + (current.ResetCredits.HasValue ? current.ResetCredits.Value + " 次可用" : "暂不可用"), summary, primary, new PointF(24, 351));
+            }
 
             using (SolidBrush dot = new SolidBrush(state)) g.FillEllipse(dot, 24, 401, 6, 6);
             DrawLabel(g, "每 60 秒自动刷新", 39, 395, TextTertiary);
@@ -853,6 +874,21 @@ namespace CodexFloatWindows
             return current.ResetsAt.HasValue ? Relative(current.ResetsAt.Value) : null;
         }
 
+        private string CountdownHeadline()
+        {
+            if (!current.ResetsAt.HasValue) return "暂不可用";
+            TimeSpan span = current.ResetsAt.Value - DateTime.Now;
+            if (span.TotalMinutes <= 0) return "即将重置";
+            if (span.TotalDays >= 1) return ((int)span.TotalDays) + "天" + span.Hours + "小时";
+            if (span.TotalHours >= 1) return ((int)span.TotalHours) + "小时" + span.Minutes + "分钟";
+            return Math.Max(1, (int)span.TotalMinutes) + "分钟";
+        }
+
+        private string ResetDateHeadline()
+        {
+            return current.ResetsAt.HasValue ? current.ResetsAt.Value.ToString("M月d日 HH:mm") : "暂不可用";
+        }
+
         private void ToggleExpanded()
         {
             expanded = !expanded;
@@ -873,9 +909,10 @@ namespace CodexFloatWindows
             };
             expanded = !compact;
             ClientSize = compact ? new Size(154, 52) : new Size(372, 432);
-            using (Bitmap bitmap = new Bitmap(ClientSize.Width, ClientSize.Height))
+            using (Bitmap bitmap = new Bitmap(ClientSize.Width, ClientSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+            using (Graphics graphics = Graphics.FromImage(bitmap))
             {
-                DrawToBitmap(bitmap, new Rectangle(Point.Empty, ClientSize));
+                DrawSurface(graphics);
                 bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
             }
         }
