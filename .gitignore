@@ -1,0 +1,10 @@
+*.exe
+*.dll
+*.pdb
+*.user
+*.suo
+bin/
+obj/
+.vs/
+dist/
+auth.json
